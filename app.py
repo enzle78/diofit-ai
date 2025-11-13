@@ -54,6 +54,7 @@ def predict():
         "msg": "¡Detectado automáticamente! Ajuste perfecto",
         "link": "https://diosize.com/sujetadores-85g"
     })
-
+import werkzeug
+werkzeug.cached_property = werkzeug.utils.cached_property
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
