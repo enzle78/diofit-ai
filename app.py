@@ -49,17 +49,15 @@ def predict():
     elif avg_color[1] > 150: talla = "75P PL → Ewa Michalak"
     else: talla = "105D FR → Naturana (90H real)"
     
-     return jsonify({
-        "talla": talla,
-        "msg": "¡Detectado con IA! Ajuste perfecto",
-        "link": "https://diosize.com/sujetadores-85g"
-    })
+    return jsonify({ ... })
 
 from flask_cors import CORS
 CORS(app)
 
 import werkzeug
 werkzeug.cached_property = werkzeug.utils.cached_property
+import threading
+threading.active_count()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
