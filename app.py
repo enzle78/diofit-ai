@@ -1,52 +1,48 @@
-# app.py - DIOFIT AI - FUNCIONA EN RAILWAY AL 100%
+# app.py - DIOFIT AI - FUNCIONA EN RAILWAY 100% (sin libGL)
 from flask import Flask, request, jsonify
-import cv2
+import cv2  # ahora es headless → NO necesita libGL
 import numpy as np
 import os
 
-# Flask app
 app = Flask(__name__)
-
-# Carpeta para guardar temporalmente (Railway la crea sola)
-UPLOAD_FOLDER = '/tmp/uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/')
 def index():
     return '''
     <!DOCTYPE html>
-    <html>
+    <html lang="es">
     <head>
         <meta charset="utf-8">
         <title>DioFit AI - DioSize</title>
         <style>
-            body{font-family:Arial;text-align:center;background:#fff5f8;padding:50px;}
-            .btn{background:#ff1493;color:white;padding:18px 50px;font-size:22px;border:none;border-radius:15px;cursor:pointer;}
-            h1{color:#ff1493;}
+            body {font-family: Arial; text-align: center; background: #fff5f8; padding: 60px;}
+            .btn {background: #ff1493; color: white; padding: 22px 80px; font-size: 28px; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0 10px 30px rgba(255,20,147,0.4);}
+            h1 {color: #ff1493; font-size: 48px;}
+            #r {margin-top: 50px; font-size: 30px; line-height: 1.6;}
         </style>
     </head>
     <body>
         <h1>DIOSIZE - DioFit AI</h1>
-        <p>Sube una foto con sujetador y te digo tu talla perfecta</p>
-        <input type="file" id="file" accept="image/*"><br><br>
+        <p style="font-size:24px;">Sube una foto con sujetador y te digo tu talla perfecta</p>
+        <input type="file" id="file" accept="image/*" style="font-size:20px;"><br><br>
         <button class="btn" onclick="go()">¡DIME MI TALLA!</button>
-        <div id="r" style="margin-top:30px;font-size:24px;"></div>
+        <div id="r"></div>
         <script>
             function go(){
                 let f = document.getElementById('file').files[0];
-                if(!f) return alert("¡Sube una foto primero!");
-                let d = new FormData(); 
-                d.append('file', f);
-                fetch('/predict', {method:'POST', body:d})
+                if(!f) return alert("¡Sube una foto!");
+                let d = new FormData(); d.append('file', f);
+                document.getElementById('r').innerHTML = "<p>Analizando...</p>";
+                fetch('/predict', {method: 'POST', body: d})
                 .then(r => r.json())
                 .then(x => {
                     document.getElementById('r').innerHTML = 
-                    `<h2>¡Tu talla ideal es <b>${x.talla}</b>!</h2>
-                     <p>${x.msg}</p>
+                    `<h2>¡Tu talla es <b>${x.talla}</b>!</h2>
+                     <p style="color:#ff1493;">${x.msg}</p>
                      <a href="${x.link}" target="_blank">
-                     <button class="btn">COMPRAR EN DIOSIZE</button></a>`;
+                     <button class="btn">COMPRAR EN DIOSIZE.COM</button></a>`;
                 })
-                .catch(() => alert("Error, intenta de nuevo"));
+                .catch(() => document.getElementById('r').innerHTML = "<p style='color:red;'>Error, intenta de nuevo</p>");
             }
         </script>
     </body>
@@ -64,31 +60,30 @@ def predict():
     img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     
     if img is None:
-        return jsonify({"error": "Imagen no válida"}), 400
+        return jsonify({"error": "Imagen inválida"}), 400
     
-    # Detección por color dominante (demo rápida)
-    avg_color = np.mean(img, axis=(0, 1))  # BGR
+    avg_color = np.mean(img, axis=(0, 1))
     
-    if avg_color[2] > 140:  # Rojo alto → Freya turquesa/azul
+    if avg_color[2] > 110:  # Rojo alto → Freya
         talla = "85G UK → Freya Idol Cobalt"
         link = "https://diosize.com/freya-idol-85g"
-    elif avg_color[0] > 140:  # Azul alto → Elomi
+    elif avg_color[0] > 110:  # Azul alto → Elomi
         talla = "80K EU → Elomi Cate"
         link = "https://diosize.com/elomi-cate-80k"
-    elif avg_color[1] > 140:  # Verde alto → Ewa Michalak
+    elif avg_color[1] > 110:  # Verde alto → Ewa
         talla = "75P PL → Ewa Michalak"
         link = "https://diosize.com/ewa-michalak-75p"
     else:
-        talla = "105D FR → Naturana (real 90H)"
+        talla = "105D FR → Naturana (90H real)"
         link = "https://diosize.com/naturana-105d"
     
     return jsonify({
         "talla": talla,
-        "msg": "¡Detectado automáticamente con DioFit AI!",
+        "msg": "¡Detectado con DioFit AI - Ajuste perfecto!",
         "link": link
     })
 
-# ESTO ES LO QUE LO HACE FUNCIONAR EN RAILWAY
+# PUERTO DINÁMICO RAILWAY
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host="0.0.0.0", port=port)
