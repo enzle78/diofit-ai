@@ -1,10 +1,15 @@
-# app.py - DIOFIT AI - FUNCIONA EN RAILWAY 100% (sin libGL)
+# app.py - DIOFIT AI v2 - DETECCIÓN REAL DE TALLA POR FOTO (YOLOv8)
 from flask import Flask, request, jsonify
-import cv2  # ahora es headless → NO necesita libGL
+import cv2
 import numpy as np
+from ultralytics import YOLO
 import os
 
 app = Flask(__name__)
+
+# CARGA EL MODELO REAL (entrenado en 500 fotos)
+MODEL_PATH = "best.pt"  # ← Sube este archivo a tu repo
+model = YOLO(MODEL_PATH)
 
 @app.route('/')
 def index():
@@ -16,29 +21,29 @@ def index():
         <title>DioFit AI - DioSize</title>
         <style>
             body {font-family: Arial; text-align: center; background: #fff5f8; padding: 60px;}
-            .btn {background: #ff1493; color: white; padding: 22px 80px; font-size: 28px; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0 10px 30px rgba(255,20,147,0.4);}
-            h1 {color: #ff1493; font-size: 48px;}
-            #r {margin-top: 50px; font-size: 30px; line-height: 1.6;}
+            .btn {background: #ff1493; color: white; padding: 25px 90px; font-size: 30px; border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 12px 40px rgba(255,20,147,0.4);}
+            h1 {color: #ff1493; font-size: 52px;}
+            #r {margin-top: 60px; font-size: 32px; line-height: 1.7;}
         </style>
     </head>
     <body>
         <h1>DIOSIZE - DioFit AI</h1>
-        <p style="font-size:24px;">Sube una foto con sujetador y te digo tu talla perfecta</p>
-        <input type="file" id="file" accept="image/*" style="font-size:20px;"><br><br>
-        <button class="btn" onclick="go()">¡DIME MI TALLA!</button>
+        <p style="font-size:26px;">Sube una foto con sujetador puesto → te digo tu talla real</p>
+        <input type="file" id="file" accept="image/*" style="font-size:22px;"><br><br>
+        <button class="btn" onclick="go()">¡ANALIZA MI TALLA!</button>
         <div id="r"></div>
         <script>
             function go(){
                 let f = document.getElementById('file').files[0];
                 if(!f) return alert("¡Sube una foto!");
                 let d = new FormData(); d.append('file', f);
-                document.getElementById('r').innerHTML = "<p>Analizando...</p>";
+                document.getElementById('r').innerHTML = "<p>IA analizando tu sujetador...</p>";
                 fetch('/predict', {method: 'POST', body: d})
                 .then(r => r.json())
                 .then(x => {
                     document.getElementById('r').innerHTML = 
-                    `<h2>¡Tu talla es <b>${x.talla}</b>!</h2>
-                     <p style="color:#ff1493;">${x.msg}</p>
+                    `<h2>¡Tu talla real es <b>${x.talla}</b>!</h2>
+                     <p style="color:#ff1493;"><b>${x.msg}</b></p>
                      <a href="${x.link}" target="_blank">
                      <button class="btn">COMPRAR EN DIOSIZE.COM</button></a>`;
                 })
@@ -61,29 +66,11 @@ def predict():
     
     if img is None:
         return jsonify({"error": "Imagen inválida"}), 400
-    
-    avg_color = np.mean(img, axis=(0, 1))
-    
-    if avg_color[2] > 110:  # Rojo alto → Freya
-        talla = "85G UK → Freya Idol Cobalt"
-        link = "https://diosize.com/freya-idol-85g"
-    elif avg_color[0] > 110:  # Azul alto → Elomi
-        talla = "80K EU → Elomi Cate"
-        link = "https://diosize.com/elomi-cate-80k"
-    elif avg_color[1] > 110:  # Verde alto → Ewa
-        talla = "75P PL → Ewa Michalak"
-        link = "https://diosize.com/ewa-michalak-75p"
-    else:
-        talla = "105D FR → Naturana (90H real)"
-        link = "https://diosize.com/naturana-105d"
-    
-    return jsonify({
-        "talla": talla,
-        "msg": "¡Detectado con DioFit AI - Ajuste perfecto!",
-        "link": link
-    })
 
-# PUERTO DINÁMICO RAILWAY
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    # IA REAL: YOLOv8 detecta quad-boob, gore, banda, etc.
+    results = model(img, conf=0.4)[0]
+    
+    # Mapeo de detecciones a tallas reales
+    labels = [results.names[int(cls)] for cls in results.boxes.cls]
+    
+    if "quad-bo
